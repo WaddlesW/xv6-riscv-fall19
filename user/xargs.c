@@ -22,7 +22,7 @@ int main(int argc, char *argv[]){
                 if(fork() == 0){
                     exec(argv[1], lineSplit);
                 }                
-                wait(0);
+                wait();
             }else if(block[i] == ' ') {
                 buf[m++] = 0;
                 lineSplit[cnt++] = p;
