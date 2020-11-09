@@ -1,59 +1,68 @@
 #include "kernel/types.h"
+#include "kernel/fcntl.h"
 #include "kernel/stat.h"
-#include "user/user.h"
 #include "kernel/fs.h"
+#include "user/user.h"
 
-
-void find(const char* path, const char* next, const char* filename, int mode) {
-	int fd;
-	struct dirent de;
-	struct stat st;
-
-	char this_path[DIRSIZ + 1];
-	strcpy(this_path, path);
-	if (mode == 0) {
-		int len = strlen(this_path);
-		this_path[len] = '/';
-		strcpy(this_path + len + 1, next);
+char* fmt_name(char *path){
+	static char buf[DIRSIZ+1];
+	char *p;
+	for(p=path+strlen(path); p >= path && *p != '/'; p--);
+	p++;
+	memmove(buf, p, strlen(p)+1);
+	return buf;
+}
+ 
+void eq_print(char *fileName, char *findName){
+	if(strcmp(fmt_name(fileName), findName) == 0){
+		printf("%s\n", fileName);
 	}
-	if((fd = open(this_path, 0)) < 0){
+}
+
+void find(char *path, char *findName){
+	int fd;
+	struct stat st;	
+	if((fd = open(path, O_RDONLY)) < 0){
 		printf("find: cannot open %s\n", path);
 		return;
 	}
-
 	if(fstat(fd, &st) < 0){
-		printf("ls: cannot stat %s\n", path);
+		printf("find: cannot stat %s\n", path);
 		close(fd);
 		return;
 	}
-
-	switch (st.type) {
-		case T_DIR:
-			while(read(fd, &de, sizeof(de)) == sizeof(de)) {
-				if (de.inum == 0) continue;
-				if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) continue;
-				find(this_path, de.name, filename, 0);	//
-			}
-			break;
+	char buf[512], *p;	
+	struct dirent de;
+	switch(st.type){	
 		case T_FILE:
-			if (strcmp(filename, next) == 0) {
-				printf("%s\n", this_path);
+			eq_print(path, findName);			
+			break;
+		case T_DIR:
+			if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+				printf("find: path too long\n");
+				break;
+			}
+			strcpy(buf, path);
+			p = buf+strlen(buf);
+			*p++ = '/';
+			while(read(fd, &de, sizeof(de)) == sizeof(de)){
+				//printf("de.name:%s, de.inum:%d\n", de.name, de.inum);
+				if(de.inum == 0 || de.inum == 1 || strcmp(de.name, ".")==0 || strcmp(de.name, "..")==0)
+					continue;				
+				memmove(p, de.name, strlen(de.name));
+				p[strlen(de.name)] = 0;
+				find(buf, findName);
 			}
 			break;
 	}
-	close(fd);
+	close(fd);	
 }
 
-int
-main(int argc, char *argv[])
-{
-	if(argc < 2){
-		printf("Usage: find path filename\n");
+int main(int argc, char *argv[]){
+	if(argc < 3){
+		printf("Usage:find path flieName\n");
 		exit();
 	}
-	const char* path = argv[1];
-	const char* filename = argv[2];
-	
-	find(path, "", filename, 1);
+	find(argv[1], argv[2]);
 	exit();
 }

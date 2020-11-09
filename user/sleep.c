@@ -9,6 +9,6 @@ int main(int argc, char *argv[])
 	}
 	int time = atoi(argv[1]);
 	sleep(time);
-	printf("Sleep %d", time);
+	printf("Sleep %d\n", time);
 	exit();
 }
