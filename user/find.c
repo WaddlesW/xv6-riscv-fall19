@@ -4,50 +4,56 @@
 #include "kernel/fs.h"
 
 
-void find(char* path, char* file) {
-  int fd;
-  struct dirent de;
-  struct stat st;
-  
-  if((fd = open(path, 0)) < 0){
-    fprintf(2, "find: cannot open %s\n", path);
-    return;
-  }
+void find(const char* path, const char* next, const char* filename, int mode) {
+	int fd;
+	struct dirent de;
+	struct stat st;
 
-  if(fstat(fd, &st) < 0){
-    fprintf(2, "ls: cannot stat %s\n", path);
-    close(fd);
-    return;
-  }
+	char this_path[DIRSIZ + 1];
+	strcpy(this_path, path);
+	if (mode == 0) {
+		int len = strlen(this_path);
+		this_path[len] = '/';
+		strcpy(this_path + len + 1, next);
+	}
+	if((fd = open(this_path, 0)) < 0){
+		printf("find: cannot open %s\n", path);
+		return;
+	}
 
-  switch (st.type) {
-    case T_DIR:
-    while(read(fd, &de, sizeof(de)) == sizeof(de)) {
-      if (de.inum == 0) continue;
-      if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) continue;
-      find(path, de.name, file, 0);
-    }
-    break;
-    case T_FILE:
-    if (strcmp(file, next) == 0) {
-      printf("%s\n", path);
-    }
-    break;
-  }
+	if(fstat(fd, &st) < 0){
+		printf("ls: cannot stat %s\n", path);
+		close(fd);
+		return;
+	}
 
-  close(fd);
+	switch (st.type) {
+		case T_DIR:
+			while(read(fd, &de, sizeof(de)) == sizeof(de)) {
+				if (de.inum == 0) continue;
+				if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) continue;
+				find(this_path, de.name, filename, 0);	//
+			}
+			break;
+		case T_FILE:
+			if (strcmp(filename, next) == 0) {
+				printf("%s\n", this_path);
+			}
+			break;
+	}
+	close(fd);
 }
 
 int
 main(int argc, char *argv[])
 {
-  if(argc != 3){
-    fprintf(2, "Usage: find path filename\n");
-    exit();
-  }
-
-
-  find(argv[1], argv[2]);
-
-  exit();
+	if(argc < 2){
+		printf("Usage: find path filename\n");
+		exit();
+	}
+	const char* path = argv[1];
+	const char* filename = argv[2];
+	
+	find(path, "", filename, 1);
+	exit();
 }
