@@ -1,40 +1,36 @@
 #include "kernel/types.h"
-#include "kernel/stat.h"
-#include "kernel/param.h"
 #include "user/user.h"
 
-int
-main(int argc, char *argv[])
-{
-	if(argc < 2)	printf("Usage: xargs command\n");
-	exit();
-  }
-
-	char* _argv[MAXARG];
-	for (int i=1; i<argc; i++) _argv[i-1] = argv[i];
-	char buf[1000];
-	int stat = 1;
-  
-  while (stat) {
-    int cnt = 0, begin_arg = 0, argv_cnt = argc - 1;
-    char ch = 0;
-    while (1) {
-		stat = read(0, &ch, 1);
-		if (stat == 0) exit();
-		if (ch == ' ' || ch == '\n') {
-			argument[cnt++] = 0;
-			_argv[argv_cnt++] = &argument[begin_arg];
-			begin_arg = cnt;
-			if (ch == '\n') break;
-		} 
-		else argument[cnt++] = ch;
+int main(int argc, char *argv[]){
+    int  cnt , n, m = 0;
+    char block[32], buf[32];
+    char *p = buf;
+    char *lineSplit[32];
+	
+    for(cnt = 0; cnt < argc - 1; cnt++){
+        lineSplit[cnt] = argv[cnt+1];
     }
-    _argv[argv_cnt] = 0;
-    if (fork() == 0) {
-		exec(_argv[0], _argv);
-    } else {
-		wait();  
+    while((n = read(0, block, sizeof(block))) > 0){
+        for(int i = 0; i < n; i++){
+            if(block[i] == '\n'){
+                buf[m] = 0;
+                m = 0;
+                lineSplit[cnt++] = p;
+                p = buf;
+                lineSplit[cnt] = 0;
+                cnt = argc - 1;
+                if(fork() == 0){
+                    exec(argv[1], lineSplit);
+                }                
+                wait(0);
+            }else if(block[i] == ' ') {
+                buf[m++] = 0;
+                lineSplit[cnt++] = p;
+                p = &buf[m];
+            }else {
+                buf[m++] = block[i];
+            }
+        }
     }
-  }
-  exit();
+    exit();
 }
