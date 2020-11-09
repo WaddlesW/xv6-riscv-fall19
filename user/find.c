@@ -4,22 +4,7 @@
 #include "kernel/fs.h"
 #include "user/user.h"
 
-char* fmt_name(char *path){
-	static char buf[DIRSIZ+1];
-	char *p;
-	for(p=path+strlen(path); p >= path && *p != '/'; p--);
-	p++;
-	memmove(buf, p, strlen(p)+1);
-	return buf;
-}
- 
-void eq_print(char *fileName, char *findName){
-	if(strcmp(fmt_name(fileName), findName) == 0){
-		printf("%s\n", fileName);
-	}
-}
-
-void find(char *path, char *findName){
+void find(char *path, char *fileName){
 	int fd;
 	struct stat st;	
 	if((fd = open(path, O_RDONLY)) < 0){
@@ -31,11 +16,20 @@ void find(char *path, char *findName){
 		close(fd);
 		return;
 	}
+	
 	char buf[512], *p;	
 	struct dirent de;
+	static char cmp[DIRSIZ+1];
+	
+	for(p=path+strlen(path); p >= path && *p != '/'; p--);
+	p++;
+	memmove(cmp, p, strlen(p)+1);
+	
 	switch(st.type){	
 		case T_FILE:
-			eq_print(path, findName);			
+			if(strcmp(cmp, fileName) == 0){
+				printf("%s\n", path);
+			}			
 			break;
 		case T_DIR:
 			if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
@@ -46,12 +40,10 @@ void find(char *path, char *findName){
 			p = buf+strlen(buf);
 			*p++ = '/';
 			while(read(fd, &de, sizeof(de)) == sizeof(de)){
-				//printf("de.name:%s, de.inum:%d\n", de.name, de.inum);
-				if(de.inum == 0 || de.inum == 1 || strcmp(de.name, ".")==0 || strcmp(de.name, "..")==0)
-					continue;				
+				if(de.inum == 0 || de.inum == 1 || strcmp(de.name, ".")==0 || strcmp(de.name, "..")==0)	continue;				
 				memmove(p, de.name, strlen(de.name));
 				p[strlen(de.name)] = 0;
-				find(buf, findName);
+				find(buf, fileName);
 			}
 			break;
 	}
