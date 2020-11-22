@@ -14,7 +14,7 @@ int getcmd(char *buf, int nbuf)
 	printf("@ ");
     memset(buf, 0, nbuf);
     gets(buf, nbuf);
-    (buf[0] == 0) ? (return -1:return 0)
+    (buf[0] == 0) ? (return -1:return 0);
 
 }
 
@@ -37,7 +37,6 @@ void setargs(char *cmd, char* argv[],int* argc)
     }
     argv[i]=0;
     *argc=i;
-	return;
 }
 
 void execPipe(char*argv[],int argc); 
@@ -61,7 +60,6 @@ void runcmd(char*argv[],int argc)
         }
     }
     exec(argv[0], argv);
-	return;
 }
  
 void execPipe(char*argv[],int argc){
@@ -90,7 +88,6 @@ void execPipe(char*argv[],int argc){
         close(fd[W]);
         runcmd(argv+i+1,argc-i-1);
     }
-	return;
 }
 
 int main()
@@ -105,7 +102,7 @@ int main()
             setargs(buf, argv,&argc);
             runcmd(argv,argc);
         }
-        wait();
+        wait(0);
     }
-    exit();
+    exit(0);
 }
