@@ -72,8 +72,8 @@ void run(char* path, char** argv) {
     
 		exec(path, argv);
 
-		if (stdin != 0) destroy_stdin(stdin);
-		if (stdout != 0) destroy_stdout(stdout);
+		if (stdin != 0) close(0);
+		if (stdout != 0) close(1);
   
 		if (pipe_argv != 0) {
 			close(fd[1]);
