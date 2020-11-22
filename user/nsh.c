@@ -23,7 +23,8 @@ char args[MAXARGS][MAXCHAR];
 
 void setargs(char *cmd, char* argv[],int* argc)
 {
-    for(int i=0;i<MAXARGS;i++){
+	int i = 0;
+    for(;i<MAXARGS;i++){
         argv[i]=&args[i][0];
     }
 
