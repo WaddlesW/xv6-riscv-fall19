@@ -3,9 +3,8 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-
 int
-readline(char* buf, int n) {
+readlines(char* buf, int n) {
 	gets(buf, n);
 	if (buf[0] == 0) return -1;
 	else{
@@ -15,7 +14,7 @@ readline(char* buf, int n) {
 }
 
 void
-run(char* path, char** argv) {
+runcmd(char* path, char** argv) {
 	char** pipe_argv = 0;
 	char* stdin = 0;
 	char* stdout = 0;
@@ -41,17 +40,19 @@ run(char* path, char** argv) {
 			pipe(fd);
 			if (fork() == 0) {
 				close(fd[1]);
+				//open stdin
 				close(0);
 				if (dup(fd[0]) != 0) {
 					printf("redirect stdin failed!\n");
 					exit(1);
 				}
-				run(pipe_argv[0], pipe_argv);
+				runcmd(pipe_argv[0], pipe_argv);
 				close(fd[0]);
 				close(0);
 				exit(0);
 			}
 			close(fd[0]);
+			//open stdout
 			close(1);
 			if (dup(fd[1]) != 1) {
 				printf("redirect stdout failed!\n");
@@ -60,6 +61,7 @@ run(char* path, char** argv) {
 		}
 
 		if (stdin != 0){
+			//redirect stdin
 			close(0);
 			if (open(stdin, O_RDONLY) != 0) {
 				printf("open stdin %s failed!\n", stdin);
@@ -67,6 +69,7 @@ run(char* path, char** argv) {
 			}
 		}
 		if (stdout != 0) {
+			//redirect stdout
 			close(1);
 			if (open(stdout, O_CREATE | O_WRONLY) != 1) {
 				printf("open stdout %s failed!\n", stdout);
@@ -97,7 +100,7 @@ main(int argc, char *argv[])
 	char* aargv[32] = { 0 };
 	int aargc = 0;
 	printf("@ ");
-	while(!readline(buf, 128)) {
+	while(!readlines(buf, 128)) {
 		int buf_len = strlen(buf);
 		aargc = 0;
 		aargv[aargc++] = buf;
@@ -108,7 +111,7 @@ main(int argc, char *argv[])
 			}
 		}
 		aargv[aargc] = 0;
-		run(aargv[0], aargv);
+		runcmd(aargv[0], aargv);
 		printf("@ ");
 	}
 	exit(0);
