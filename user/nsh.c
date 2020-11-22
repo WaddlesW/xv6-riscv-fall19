@@ -35,6 +35,16 @@ void redirect_stdout(int fd) {
 	}
 }
 
+int destroy_stdin() {
+	close(0);
+	return 0;
+}
+
+int destroy_stdout() {
+	close(1);
+	return 0;
+}
+
 void run(char* path, char** argv) {
 	char** pipe_argv = 0;
 	char* stdin = 0;
@@ -42,13 +52,11 @@ void run(char* path, char** argv) {
 	for (char** v = argv; *v != 0; ++v) {
 		if (strcmp(*v, "<") == 0) {
 			*v = 0;
-			stdin = *(v + 1);
-			++v;
+			stdin = *(++v);
 		}
 		if (strcmp(*v, ">") == 0) {
 			*v = 0;
-			stdout = *(v + 1);
-			++v;
+			stdout = *(++v);
 		}
 		if (strcmp(*v, "|") == 0) {
 			*v = 0;
@@ -66,7 +74,7 @@ void run(char* path, char** argv) {
 				redirect_stdin(fd[0]);
 				run(pipe_argv[0], pipe_argv);
 				close(fd[0]);
-				close(0);
+				destroy_stdin();
 				exit(0);
 			}
 			close(fd[0]);
@@ -78,12 +86,12 @@ void run(char* path, char** argv) {
     
 		exec(path, argv);
 
-		if (stdin != 0) close(0);
-		if (stdout != 0) close(1);
+		if (stdin != 0) destroy_stdin(stdin);
+		if (stdout != 0) destroy_stdout(stdout);
   
 		if (pipe_argv != 0) {
 			close(fd[1]);
-			close(1);
+			destroy_stdout();
 			wait(0);
 		}
 		exit(0);
