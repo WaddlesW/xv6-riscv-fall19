@@ -3,46 +3,12 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-void open_stdin(char* path) {
+void destroy_stdin() {
 	close(0);
-	if (open(path, O_RDONLY) != 0) {
-		printf("open stdin %s failed!\n", path);
-		exit(1);
-	}
 }
 
-void redirect_stdin(int fd) {
-	close(0);
-	if (dup(fd) != 0) {
-		printf("redirect stdin failed!\n");
-		exit(1);
-	}
-}
-
-void open_stdout(char* path) {
+void destroy_stdout() {
 	close(1);
-	if (open(path, O_CREATE | O_WRONLY) != 1) {
-		printf("open stdout %s failed!\n", path);
-		exit(1);
-	}
-}
-
-void redirect_stdout(int fd) {
-	close(1);
-	if (dup(fd) != 1) {
-		printf("redirect stdout failed!\n");
-		exit(1);
-	}
-}
-
-int destroy_stdin() {
-	close(0);
-	return 0;
-}
-
-int destroy_stdout() {
-	close(1);
-	return 0;
 }
 
 void run(char* path, char** argv) {
@@ -71,18 +37,38 @@ void run(char* path, char** argv) {
 			pipe(fd);
 			if (fork() == 0) {
 				close(fd[1]);
-				redirect_stdin(fd[0]);
+				destroy_stdin();
+				if (dup(fd[0]) != 0) {
+					printf("redirect stdin failed!\n");
+					exit(1);
+				}
 				run(pipe_argv[0], pipe_argv);
 				close(fd[0]);
 				destroy_stdin();
 				exit(0);
 			}
 			close(fd[0]);
-			redirect_stdout(fd[1]);
+			destroy_stdout();
+			if (dup(fd[1]) != 1) {
+				printf("redirect stdout failed!\n");
+				exit(1);
+			}
 		}
 
-		if (stdin != 0) open_stdin(stdin);
-		if (stdout != 0) open_stdout(stdout);
+		if (stdin != 0){
+			destroy_stdin();
+			if (open(stdin, O_RDONLY) != 0) {
+				printf("open stdin %s failed!\n", stdin);
+				exit(1);
+			}
+		}
+		if (stdout != 0) {
+			destroy_stdout();
+			if (open(stdout, O_CREATE | O_WRONLY) != 1) {
+				printf("open stdout %s failed!\n", stdout);
+				exit(1);
+			}
+		}
     
 		exec(path, argv);
 
@@ -110,7 +96,8 @@ int readline(char* buf, int n) {
 	}
 }
 
-int main(int argc, char *argv[])
+int 
+main(int argc, char *argv[])
 {
 	char buf[128] = { 0 };
 	char* aargv[32] = { 0 };
