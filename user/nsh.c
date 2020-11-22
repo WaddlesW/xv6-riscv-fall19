@@ -37,18 +37,18 @@ void run(char* path, char** argv) {
 			pipe(fd);
 			if (fork() == 0) {
 				close(fd[1]);
-				destroy_stdin();
+				close(0);
 				if (dup(fd[0]) != 0) {
 					printf("redirect stdin failed!\n");
 					exit(1);
 				}
 				run(pipe_argv[0], pipe_argv);
 				close(fd[0]);
-				destroy_stdin();
+				close(0);
 				exit(0);
 			}
 			close(fd[0]);
-			destroy_stdout();
+			close(1);
 			if (dup(fd[1]) != 1) {
 				printf("redirect stdout failed!\n");
 				exit(1);
@@ -56,14 +56,14 @@ void run(char* path, char** argv) {
 		}
 
 		if (stdin != 0){
-			destroy_stdin();
+			close(0);
 			if (open(stdin, O_RDONLY) != 0) {
 				printf("open stdin %s failed!\n", stdin);
 				exit(1);
 			}
 		}
 		if (stdout != 0) {
-			destroy_stdout();
+			close(1);
 			if (open(stdout, O_CREATE | O_WRONLY) != 1) {
 				printf("open stdout %s failed!\n", stdout);
 				exit(1);
