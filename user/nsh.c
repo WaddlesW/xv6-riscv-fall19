@@ -66,7 +66,8 @@ void runcmd(char*argv[],int argc)
 }
  
 void execPipe(char*argv[],int argc){
-    for(int i=0;i<argc;i++){
+    int i=0;
+	for(;i<argc;i++){
         if(!strcmp(argv[i],"|")){
             argv[i]=0;
             break;
