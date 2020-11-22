@@ -3,54 +3,52 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-int open_stdin(char* path) {
+void open_stdin(char* path) {
 	close(0);
 	if (open(path, O_RDONLY) != 0) {
 		printf("open stdin %s failed!\n", path);
 		exit(1);
 	}
-	return 0;
 }
 
-int redirect_stdin(int fd) {
+void redirect_stdin(int fd) {
 	close(0);
 	if (dup(fd) != 0) {
 		printf("redirect stdin failed!\n");
 		exit(1);
 	}
-	return 0;
 }
 
-int open_stdout(char* path) {
+void open_stdout(char* path) {
 	close(1);
 	if (open(path, O_CREATE | O_WRONLY) != 1) {
 		printf("open stdout %s failed!\n", path);
 		exit(1);
 	}
-	return 0;
 }
 
-int redirect_stdout(int fd) {
+void redirect_stdout(int fd) {
 	close(1);
 	if (dup(fd) != 1) {
 		printf("redirect stdout failed!\n");
 		exit(1);
 	}
-	return 0;
 }
 
-int run(char* path, char** argv) {
+void run(char* path, char** argv) {
 	char** pipe_argv = 0;
 	char* stdin = 0;
 	char* stdout = 0;
 	for (char** v = argv; *v != 0; ++v) {
 		if (strcmp(*v, "<") == 0) {
 			*v = 0;
-			stdin = *(++v);
+			stdin = *(v + 1);
+			++v;
 		}
 		if (strcmp(*v, ">") == 0) {
 			*v = 0;
-			stdout = *(++v);
+			stdout = *(v + 1);
+			++v;
 		}
 		if (strcmp(*v, "|") == 0) {
 			*v = 0;
@@ -80,26 +78,28 @@ int run(char* path, char** argv) {
     
 		exec(path, argv);
 
-		if (stdin != 0) close(0);;
-		if (stdout != 0) close(1);;
+		if (stdin != 0) close(0);
+		if (stdout != 0) close(1);
   
 		if (pipe_argv != 0) {
 			close(fd[1]);
-			close(1);;
+			close(1);
 			wait(0);
 		}
 		exit(0);
 	} else {
 		wait(0);
 	}
-	return 0;
 }
+
 
 int readline(char* buf, int n) {
 	gets(buf, n);
 	if (buf[0] == 0) return -1;
-	buf[strlen(buf) - 1] = 0;
-	return 0;
+	else{
+		buf[strlen(buf) - 1] = 0;
+		return 0;	
+	}
 }
 
 int main(int argc, char *argv[])
