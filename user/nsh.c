@@ -14,7 +14,9 @@ int getcmd(char *buf, int nbuf)
 	printf("@ ");
     memset(buf, 0, nbuf);
     gets(buf, nbuf);
-    (buf[0] == 0) ? (return -1:return 0);
+    if(buf[0] == 0){
+		return -1;
+	}else return 0;
 
 }
 
