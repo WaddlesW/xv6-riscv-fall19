@@ -2,37 +2,38 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
  
-#define R 0
-#define W 1
+void execPipe(char*argv[],int argc); 
+ 
 #define MAXARGS 32
 #define MAXCHAR 128
-
-char args[MAXARGS][MAXCHAR];
+#define R 0
+#define W 1
  
 int getcmd(char *buf, int nbuf)
 {
-	printf("@ ");
+    fprintf(2, "@ ");
     memset(buf, 0, nbuf);
     gets(buf, nbuf);
-    if(buf[0] == 0){
-		return -1;
-	}else return 0;
-
+    if (buf[0] == 0) // EOF
+        return -1;
+    return 0;
 }
+
+char args[MAXARGS][MAXCHAR];
 
 void setargs(char *cmd, char* argv[],int* argc)
 {
-	int i = 0;
-    for(;i<MAXARGS;i++){
+    for(int i=0;i<MAXARGS;i++){
         argv[i]=&args[i][0];
     }
+
     for (int j=0, i=0; cmd[j] != '\n' && cmd[j] != '\0'; j++)
     {
-        while (strchr(" \t\r\n\v", cmd[j])){
+        while (strchr(" \t\r\n\v",cmd[j])){
             j++;
         }
         argv[i++]=cmd+j;
-        while (strchr(" \t\r\n\v", cmd[j])==0){
+        while (strchr(" \t\r\n\v",cmd[j])==0){
             j++;
         }
         cmd[j]='\0';
@@ -40,8 +41,7 @@ void setargs(char *cmd, char* argv[],int* argc)
     argv[i]=0;
     *argc=i;
 }
-
-void execPipe(char*argv[],int argc); 
+ 
 void runcmd(char*argv[],int argc)
 {
     for(int i=1;i<argc;i++){
@@ -65,33 +65,28 @@ void runcmd(char*argv[],int argc)
 }
  
 void execPipe(char*argv[],int argc){
-    int i=0;
-	int fd[2];
-    pipe(fd);
-	
-	while(i<argc){
-		i++;
-		if(!strcmp(argv[i],"|")){
+    for(int i=0;i<argc;i++){
+        if(!strcmp(argv[i],"|")){
             argv[i]=0;
             break;
         }
-	}
-
-    if(fork()==0){
-        close(W);
+    }
+    int fd[2];
+    pipe(fd);
+    if(fork()==0){	// 子进程 执行左边的命令 把自己的标准输出关闭
+        close(1);
         dup(fd[W]);
         close(fd[R]);
         close(fd[W]);
         runcmd(argv,i);
-    }else{
-        close(R);
+    }else{	// 父进程 执行右边的命令 把自己的标准输入关闭
+        close(0);
         dup(fd[R]);
         close(fd[R]);
         close(fd[W]);
         runcmd(argv+i+1,argc-i-1);
     }
 }
-
 int main()
 {
     char buf[MAXCHAR];
