@@ -84,7 +84,7 @@ int run(char* path, char** argv) {
 		if (stdout != 0) close(1);;
   
 		if (pipe_argv != 0) {
-			close(fd[W]);
+			close(fd[1]);
 			close(1);;
 			wait(0);
 		}
