@@ -3,15 +3,19 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-void destroy_stdin() {
-	close(0);
+
+int
+readline(char* buf, int n) {
+	gets(buf, n);
+	if (buf[0] == 0) return -1;
+	else{
+		buf[strlen(buf) - 1] = 0;
+		return 0;	
+	}
 }
 
-void destroy_stdout() {
-	close(1);
-}
-
-void run(char* path, char** argv) {
+void
+run(char* path, char** argv) {
 	char** pipe_argv = 0;
 	char* stdin = 0;
 	char* stdout = 0;
@@ -83,16 +87,6 @@ void run(char* path, char** argv) {
 		exit(0);
 	} else {
 		wait(0);
-	}
-}
-
-
-int readline(char* buf, int n) {
-	gets(buf, n);
-	if (buf[0] == 0) return -1;
-	else{
-		buf[strlen(buf) - 1] = 0;
-		return 0;	
 	}
 }
 
