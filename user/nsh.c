@@ -3,6 +3,13 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+void destroy_stdin() {
+	close(0);
+}
+
+void destroy_stdout() {
+	close(1);
+}
 
 void run(char* path, char** argv) {
 	char** pipe_argv = 0;
