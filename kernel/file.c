@@ -67,7 +67,7 @@ filedup(struct file *f)
 void
 fileclose(struct file *f)
 {
-  //struct file ff;
+  struct file ff;
 
   acquire(&ftable.lock);
   if(f->ref < 1)
@@ -76,12 +76,12 @@ fileclose(struct file *f)
     release(&ftable.lock);
     return;
   }
-  //ff = *f;
+  ff = *f;
   f->ref = 0;
   f->type = FD_NONE;
   bd_free(f);	//在fileclose中释放文件描述符
   release(&ftable.lock);
-/*
+
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
@@ -89,7 +89,7 @@ fileclose(struct file *f)
     iput(ff.ip);
     end_op(ff.ip->dev);
   }
-*/
+
 }
 
 // Get metadata about file f.
