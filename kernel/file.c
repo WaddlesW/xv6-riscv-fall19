@@ -81,7 +81,7 @@ fileclose(struct file *f)
   f->type = FD_NONE;
   bd_free(f);	//在fileclose中释放文件描述符
   release(&ftable.lock);
-
+/*
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
@@ -89,6 +89,7 @@ fileclose(struct file *f)
     iput(ff.ip);
     end_op(ff.ip->dev);
   }
+*/
 }
 
 // Get metadata about file f.
