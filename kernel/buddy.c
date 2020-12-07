@@ -56,6 +56,7 @@ void bit_clear(char *array, int index) {
   array[index/8] = (b & ~m);
 }
 
+//alloc Array和split不能再共用bit_set和bit_clear，使用bit_flip代替
 void bit_filp(char *array, int index) {
   if(bit_isset(array, index))
     bit_clear(array, index);
@@ -255,20 +256,22 @@ bd_initfree_pair(int k, int bi, int left) {
    if(bit_isset(bd_sizes[k].alloc, bi) !=  bit_isset(bd_sizes[k].alloc, buddy)) {
      // one of the pair is free
      free = BLK_SIZE(k);
+     free = BLK_SIZE(k);
      if(bit_isset(bd_sizes[k].alloc, bi))
        lst_push(&bd_sizes[k].free, addr(k, buddy));   // put buddy on free list
      else
        lst_push(&bd_sizes[k].free, addr(k, bi));      // put bi on free list
    }
   */
+  //分配给struct sz_info的alloc 空间大小除以2
   if(bit_isset(bd_sizes[k].alloc, bi / 2)){
     int larger = (buddy > bi)?buddy:bi;
-    int lesser = (buddy < bi)?buddy:bi;
+    int smaller = (buddy < bi)?buddy:bi;
     free = BLK_SIZE(k);
     if(left)
       lst_push(&bd_sizes[k].free, addr(k, larger));
     else
-      lst_push(&bd_sizes[k].free, addr(k, lesser));
+      lst_push(&bd_sizes[k].free, addr(k, smaller));
   }
   return free;
 }
@@ -340,6 +343,7 @@ bd_init(void *base, void *end) {
   for (int k = 0; k < nsizes; k++) {
     lst_init(&bd_sizes[k].free);
     // sz = sizeof(char)* ROUNDUP(NBLK(k), 8)/8;
+	//为每个size分配的alloc空间
     sz = sizeof(char)* ROUNDUP(ROUNDUP(NBLK(k), 2) / 2, 8)/8;
     bd_sizes[k].alloc = p;
     memset(bd_sizes[k].alloc, 0, sz);
