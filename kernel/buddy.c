@@ -248,7 +248,7 @@ bd_mark(void *start, void *stop)
 // If a block is marked as allocated and the buddy is free, put the
 // buddy on the free list at size k.
 int
-bd_initfree_pair(int k, int bi) {
+bd_initfree_pair(int k, int bi, int left) {
   int buddy = (bi % 2 == 0) ? bi+1 : bi-1;
   int free = 0;
   /*
