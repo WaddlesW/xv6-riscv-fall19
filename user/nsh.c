@@ -1,118 +1,139 @@
 #include "kernel/types.h"
-#include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
-int
-readlines(char* buf, int n) {
-	gets(buf, n);
-	if (buf[0] == 0) return -1;
-	else{
-		buf[strlen(buf) - 1] = 0;
-		return 0;	
-	}
-}
+void execPipe(char*argv[],int argc);
+//*****************START  from sh.c *******************
+#define MAXARGS 10
+#define MAXWORD 30
+#define MAXLINE 100
 
-void
-runcmd(char* path, char** argv) {
-	char** pipe_argv = 0;
-	char* stdin = 0;
-	char* stdout = 0;
-	for (char** v = argv; *v != 0; ++v) {
-		if (strcmp(*v, "<") == 0) {
-			*v = 0;
-			stdin = *(++v);
-		}
-		if (strcmp(*v, ">") == 0) {
-			*v = 0;
-			stdout = *(++v);
-		}
-		if (strcmp(*v, "|") == 0) {
-			*v = 0;
-			pipe_argv = v + 1;
-			break;
-		}
-	}
-
-	if (fork() == 0) {
-		int fd[2];
-		if (pipe_argv != 0) {
-			pipe(fd);
-			if (fork() == 0) {
-				close(fd[1]);
-				//open stdin
-				close(0);
-				if (dup(fd[0]) != 0) {
-					printf("redirect stdin failed!\n");
-					exit(1);
-				}
-				runcmd(pipe_argv[0], pipe_argv);
-				close(fd[0]);
-				close(0);
-				exit(0);
-			}
-			close(fd[0]);
-			//open stdout
-			close(1);
-			if (dup(fd[1]) != 1) {
-				printf("redirect stdout failed!\n");
-				exit(1);
-			}
-		}
-
-		if (stdin != 0){
-			//redirect stdin
-			close(0);
-			if (open(stdin, O_RDONLY) != 0) {
-				printf("open stdin %s failed!\n", stdin);
-				exit(1);
-			}
-		}
-		if (stdout != 0) {
-			//redirect stdout
-			close(1);
-			if (open(stdout, O_CREATE | O_WRONLY) != 1) {
-				printf("open stdout %s failed!\n", stdout);
-				exit(1);
-			}
-		}
-    
-		exec(path, argv);
-
-		if (stdin != 0) close(0);
-		if (stdout != 0) close(1);
-  
-		if (pipe_argv != 0) {
-			close(fd[1]);
-			close(1);
-			wait(0);
-		}
-		exit(0);
-	} else {
-		wait(0);
-	}
-}
-
-int 
-main(int argc, char *argv[])
+int getcmd(char *buf, int nbuf)
 {
-	char buf[128] = { 0 };
-	char* aargv[32] = { 0 };
-	int aargc = 0;
-	printf("@ ");
-	while(!readlines(buf, 128)) {
-		int buf_len = strlen(buf);
-		aargc = 0;
-		aargv[aargc++] = buf;
-		for (int i = 0; i < buf_len; i++) {
-			if (buf[i] == ' ') {
-				buf[i] = '\0';
-				aargv[aargc++] = &buf[i + 1];
-			}
-		}
-		aargv[aargc] = 0;
-		runcmd(aargv[0], aargv);
-		printf("@ ");
-	}
-	exit(0);
+    fprintf(2, "@ ");
+    memset(buf, 0, nbuf);
+    gets(buf, nbuf);
+    if (buf[0] == 0) // EOF
+        return -1;
+    return 0;
+
+}
+
+char str_space[] = " \t\r\n\v";
+char args[MAXARGS][MAXWORD];
+
+//*****************END  from sh.c ******************
+
+void setargs(char *cmd, char* argv[],int* argc)
+{
+    // 让argv的每一个元素都指向args的每一行
+    for(int i=0;i<MAXARGS;i++){
+        argv[i]=&args[i][0];
+    }
+    int i = 0; // 表示第i个word
+    int j = 0;
+    for (; cmd[j] != '\n' && cmd[j] != '\0'; j++)
+    {
+        while (strchr(str_space,cmd[j])){
+            j++;
+        }
+        argv[i++]=cmd+j;
+        // 只要不是空格，就j++,找到下一个空格
+        while (strchr(str_space,cmd[j])==0){
+            j++;
+        }
+        cmd[j]='\0';
+    }
+    argv[i]=0;
+    *argc=i;
+
+}
+
+
+void runcmd(char*argv[],int argc)
+{
+    for(int i=1;i<argc;i++){
+        if(!strcmp(argv[i],"|")){
+            // 如果遇到 | 即pipe，至少说明后面还有一个命令要执行
+            execPipe(argv,argc);
+        }
+    }
+
+    //判断argv[1]开始，后面有没有>
+    for(int i=1;i<argc;i++){
+
+        // 如果遇到 > ，说明需要执行输出重定向，首先需要关闭stdout
+
+        if(!strcmp(argv[i],">")){
+            close(1);
+
+            // 此时需要把输出重定向到后面给出的文件名对应的文件里
+            open(argv[i+1],O_CREATE|O_WRONLY);
+            argv[i]=0;
+            // break;
+        }
+        if(!strcmp(argv[i],"<")){
+            // 如果遇< ,需要执行输入重定向，关闭stdin
+            close(0);
+            open(argv[i+1],O_RDONLY);
+            argv[i]=0;
+            // break;
+        }
+    }
+    exec(argv[0], argv);
+
+}
+
+void execPipe(char*argv[],int argc){
+    int i=0;
+    // 首先找到命令中的"|",然后把他换成'\0'
+    // 从前到后，找到第一个就停止，后面都递归调用
+
+    for(;i<argc;i++){
+        if(!strcmp(argv[i],"|")){
+            argv[i]=0;
+            break;
+        }
+    }
+
+    int fd[2];
+    pipe(fd);
+
+    if(fork()==0){
+
+        // 子进程 执行左边的命令 把自己的标准输出关闭
+        close(1);
+        dup(fd[1]);
+        close(fd[0]);
+        close(fd[1]);
+        // exec(argv[0],argv);
+        runcmd(argv,i);
+
+    }else{
+
+        // 父进程 执行右边的命令 把自己的标准输入关闭
+        close(0);
+        dup(fd[0]);
+        close(fd[0]);
+        close(fd[1]);
+        // exec(argv[i+1],argv+i+1);
+        runcmd(argv+i+1,argc-i-1);
+    }
+}
+
+int main()
+{
+    char buf[MAXLINE];
+    while (getcmd(buf, sizeof(buf)) >= 0)
+    {
+        if (fork() == 0)
+        {
+            char* argv[MAXARGS];
+            int argc=-1;
+            setargs(buf, argv,&argc);
+            runcmd(argv,argc);
+        }
+        wait(0);
+    }
+    exit(0);
 }
