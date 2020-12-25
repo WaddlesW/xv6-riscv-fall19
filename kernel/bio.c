@@ -24,6 +24,7 @@
 #include "buf.h"
 
 struct {
+  //构建13个哈希组
   struct spinlock lock[13];
   struct buf buf[NBUF];
 
@@ -55,7 +56,7 @@ binit(void)
   //bcache.head.prev = &bcache.head;
   //bcache.head.next = &bcache.head;
   for(b = bcache.buf; b < bcache.buf+NBUF; b++){
-    // 先将全部buffer放到0号bucket
+    // 先将全部buffer放到0号bucket,待后续分配
     b->next = bcache.head[0].next;
     b->prev = &bcache.head[0];
     initsleeplock(&b->lock, "buffer");
@@ -67,6 +68,8 @@ binit(void)
 // Look through buffer cache for block on device dev.
 // If not found, allocate a buffer.
 // In either case, return locked buffer.
+
+//修改bget()和brelse()使得查找和释放缓存中的不同块时，锁之间的冲突更少。
 static struct buf*
 bget(uint dev, uint blockno)
 {
