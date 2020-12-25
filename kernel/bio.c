@@ -85,7 +85,7 @@ bget(uint dev, uint blockno)
   }
 
   // Not cached; recycle an unused buffer.
-  // 在其他bucket找到buffer后插入原bucket，当下一个要探索的bucket重新回到h时说明所有buffer都busy
+  // 在其他bucket找到空缓存块后插入原bucket，当下一个要探索的bucket重新回到h时说明所有buffer都busy
   int nexth=(h+1)%13;
   while(nexth != h){
     acquire(&bcache.lock[nexth]);
