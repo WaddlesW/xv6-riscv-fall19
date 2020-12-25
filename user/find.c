@@ -7,10 +7,14 @@
 void find(char *path, char *fileName){
 	int fd;
 	struct stat st;	
+	
+	//文件夹无法打开
 	if((fd = open(path, O_RDONLY)) < 0){
 		printf("find: cannot open %s\n", path);
 		return;
 	}
+	
+	//文件无法打开
 	if(fstat(fd, &st) < 0){
 		printf("find: cannot stat %s\n", path);
 		close(fd);
@@ -27,11 +31,14 @@ void find(char *path, char *fileName){
 	
 	switch(st.type){	
 		case T_FILE:
+		//若为文件，判断是否相符
 			if(strcmp(cmp, fileName) == 0){
 				printf("%s\n", path);
 			}			
 			break;
+
 		case T_DIR:
+		//若为文件夹，判断文件夹内文件，对文件夹内文件夹递归
 			if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
 				printf("find: path too long\n");
 				break;
